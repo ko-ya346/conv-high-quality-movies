@@ -10,7 +10,9 @@ import torchvision
 
 
 sys.path.append('../')
-from src.config import CFG
+sys.path.append('./')
+
+from settings import CFG
 from src.dataset import Img_dataset, get_transform
 from src.model import Generator, Discriminator
 from src.utils import show_image, conv_scale, send_line_message
