@@ -13,7 +13,7 @@ sys.path.append('../')
 from src.config import CFG
 from src.dataset import Img_dataset, get_transform
 from src.model import Generator, Discriminator
-from src.utils import show_image, conv_scale, send_line_message, get_line_token
+from src.utils import show_image, conv_scale, send_line_message
 
 
 def train():
@@ -144,4 +144,5 @@ if __name__ == '__main__':
     torch.backends.cudnn.benchmark = True # autotunerが高速化
     train()
 
-
+    text = 'finish train!!'
+    send_line_message(CFG.LINE_TOKEN, text)
