@@ -1,5 +1,7 @@
 import cv2
 import matplotlib.pyplot as plt
+import requests
+import json
 
 
 def show_image(path):
@@ -15,3 +17,18 @@ def conv_scale(arr):
     ma = arr.max()
     mi = arr.min()
     return (arr-mi) / (ma-mi)
+
+def send_line_message(token, text):
+    '''
+    LINEにtextの内容を送信する。
+    '''
+    line_api = 'https://notify-api.line.me/api/notify'
+    headers = {'Authorization': f'Bearer {token}'}
+    data = {'message': f'message: {text:}'}
+    requests.post(line_api, headers=headers, data=data)
+
+
+def get_line_token(token_path):
+    with open(token_path, 'r') as f:
+         token = json.load(f)['token']
+    return token

@@ -1,3 +1,4 @@
+import sys
 from PIL import Image
 from albumentations.pytorch import ToTensorV2
 import cv2
@@ -5,8 +6,8 @@ import numpy as np
 from torch.utils.data import DataLoader, Dataset
 import albumentations as A
 
-
-from .config import CFG
+sys.path.append('../')
+from settings import CFG
 
 
 
