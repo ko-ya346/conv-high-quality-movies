@@ -6,13 +6,14 @@ from torch import nn
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 import statistics
+import torchvision
 
 
 sys.path.append('../')
 from src.config import CFG
 from src.dataset import Img_dataset, get_transform
 from src.model import Generator, Discriminator
-from src.utils import show_image, conv_scale
+from src.utils import show_image, conv_scale, send_line_message, get_line_token
 
 
 def train():
@@ -30,14 +31,14 @@ def train():
     params_D = torch.optim.Adam(model_D.parameters(),
                 lr=0.0002, betas=(0.5, 0.999))
     
-    if os.path.exists(CFG.trained_param):
+    if CFG.trained_param:
         states = torch.load(CFG.trained_param)
         model_G.load_state_dict(states)
         
     
     # 損失関数
     bce_loss = nn.BCEWithLogitsLoss()
-    mae_loss = nn.MSELoss()
+    mae_loss = nn.L1Loss()
 
     # ロスを計算するためのラベル変数 (PatchGAN)
     # aspect ratio 4:3
@@ -118,10 +119,10 @@ def train():
         if not os.path.exists(CFG.OUTPUT_IMG):
             os.makedirs(CFG.OUTPUT_IMG)
         # 生成画像を保存
-        torchvision.utils.save_image(conv_scale(fake_color_tensor[:min(batch_len, 100)]),
+        torchvision.utils.save_image(fake_color_tensor[:min(batch_len, 100)],
                                 f"{CFG.OUTPUT_IMG}/fake_epoch_{i:03}.png",
                                     )
-        torchvision.utils.save_image(conv_scale(high_image[:min(batch_len, 100)]),
+        torchvision.utils.save_image(high_image[:min(batch_len, 100)],
                                 f"{CFG.OUTPUT_IMG}/real_epoch_{i:03}.png",
                                     )
 
@@ -142,3 +143,5 @@ if __name__ == '__main__':
     print(device)
     torch.backends.cudnn.benchmark = True # autotunerが高速化
     train()
+
+
