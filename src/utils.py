@@ -13,7 +13,7 @@ def show_image(path):
     plt.show()
 
 
-def conv_scale(arr):
+def conv_scale01(arr):
     ma = arr.max()
     mi = arr.min()
     return (arr-mi) / (ma-mi)
