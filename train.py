@@ -1,143 +1,137 @@
 import os
 import sys
+from glob import glob
+
+import numpy as np
 
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
-import statistics
-import torchvision
+from torch.optim.lr_scheduler import StepLR
+from torchvision.utils import save_image
+from dotenv import load_dotenv
 
 
 sys.path.append('../')
 sys.path.append('./')
 
 from settings import CFG
-from src.dataset import Img_dataset, get_transform
-from src.model import Generator, Discriminator
-from src.utils import show_image, conv_scale, send_line_message
+from src.dataset import get_dataloader, get_transform
+from src.model import get_network 
+from src.utils import get_line_token, send_line_message
 
+
+dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
+load_dotenv(dotenv_path)
+
+line_token = get_line_token(os.getenv('LINE_TOKEN_PATH'))
 
 def train():
-    # check dataset
-    paths = [f'{CFG.IMG_DIR}/{path}' for path in os.listdir(CFG.IMG_DIR)]
-    train_dataset = Img_dataset(paths, train_tran=get_transform(TRAIN=False),
-                                val_tran=get_transform(TRAIN=True))
-    train_loader = DataLoader(train_dataset, batch_size=CFG.batch_size, shuffle=True)
+    dataset_queries = {
+            '4-3': [
+                os.path.join(os.getenv('INPUT_DIR'), 
+                                f'4-3/images/{CFG.dataset}/*.png'),
+                os.path.join(os.getenv('INPUT_DIR'),
+                    f'4-3/images/{CFG.valid}/image-00*.png')
+                ],
+            '16-9': [
+                os.path.join(os.getenv('INPUT_DIR'), 
+                    f'16-9/images/{CFG.dataset}/*.png'),
+                os.path.join(os.getenv('INPUT_DIR'),
+                    f'16-9/images/{CFG.valid}/*.png')
+                ],
+            }
 
-    model_G, model_D = Generator(), Discriminator()
-    model_G, model_D = nn.DataParallel(model_G), nn.DataParallel(model_D)
-    model_G, model_D = model_G.to(device), model_D.to(device)
-    params_G = torch.optim.Adam(model_G.parameters(),
-                lr=0.0002, betas=(0.5, 0.999))
-    params_D = torch.optim.Adam(model_D.parameters(),
-                lr=0.0002, betas=(0.5, 0.999))
-    
-    if CFG.trained_param:
-        states = torch.load(CFG.trained_param)
-        model_G.load_state_dict(states)
+    _, train_loader = get_dataloader(dataset_queries.get(CFG.aspect_ratio)[0], 
+        CFG.batch_size)
+    _, valid_loader = get_dataloader(dataset_queries.get(CFG.aspect_ratio)[1], 
+        CFG.batch_size)
+
+    model = get_network(CFG.model)()
+    model = model.to(device)
+
+    optimizer = torch.optim.Adam(model.parameters(),
+                lr=0.01, weight_decay=1e-8)
+    scheduler = StepLR(optimizer, step_size=15, gamma=0.1)
+    if os.path.exists(f'os.getenv("OUTPUT_DIR")/{CFG.model}'):
+        states = torch.load(f'os.getenv("OUTPUT_DIR")/model/{CFG.model}_010.pytorch')
+        model.load_state_dict(states)
         
-    
     # 損失関数
-    bce_loss = nn.BCEWithLogitsLoss()
-    mae_loss = nn.L1Loss()
-
-    # ロスを計算するためのラベル変数 (PatchGAN)
-    # aspect ratio 4:3
-    ones = torch.ones(CFG.xsize, 1, 22, 30).to(device)
-    zeros = torch.zeros(CFG.ysize, 1, 22, 30).to(device)
+    criterion = nn.MSELoss()
 
     # エラー推移
-    result = {}
-    result["log_loss_G_sum"] = []
-    result["log_loss_G_bce"] = []
-    result["log_loss_G_mae"] = []
-    result["log_loss_D"] = []
+    metrics = {}
+    metrics["train"] = []
+    metrics["valid"] = []
+    save_interval =5 
+    max_epoch = CFG.epoch
 
-    for i in tqdm(range(CFG.epoch)):
-        print(f'epoch: {i+1}')
-        log_loss_G_sum, log_loss_G_bce, log_loss_G_mae, log_loss_D = [], [], [], []
+    for epoch in tqdm(range(max_epoch)):
+        print(f'epoch: {epoch+1}')
+        scheduler.step()
+        model.train()
+        
+        epoch_loss = []
+        
+        for num, (label, img_input) in enumerate(train_loader):
+            batch_len = len(label)
+            label /= 255
+            img_input /= 255
+            label, img_input = label.to(device), img_input.to(device)
 
-        for num, (high_image, low_image) in enumerate(train_loader):
-            batch_len = len(high_image)
-            high_image /= 255
-            high_image, low_image = high_image.to(device), low_image.to(device)
+            output = model(img_input)
+            output_tensor = output.detach()
 
-            # Gの訓練
-            # 偽のカラー画像を作成
-            fake_color = model_G(low_image)
+            loss = criterion(output, label)
 
-            # 偽画像を一時保存
-            fake_color_tensor = fake_color.detach()
-
-            # 偽画像を本物と騙せるようにロスを計算
-            LAMBD = 100.0 # BCEとMAEの係数
-            out = model_D(torch.cat([fake_color, low_image], dim=1))
-            loss_G_bce = bce_loss(out, ones[:batch_len])
-            loss_G_mae = LAMBD * mae_loss(fake_color, high_image)
-            loss_G_sum = loss_G_bce + loss_G_mae
-            del fake_color
-
-            log_loss_G_bce.append(loss_G_bce.item())
-            log_loss_G_mae.append(loss_G_mae.item())
-            log_loss_G_sum.append(loss_G_sum.item())
-
-            # 微分計算・重み更新
-            params_D.zero_grad()
-            params_G.zero_grad()
-            loss_G_sum.backward()
-            params_G.step()
-
-            # Discriminatoの訓練
-            # 本物のカラー画像を本物と識別できるようにロスを計算
-            real_out = model_D(torch.cat([high_image, low_image], dim=1))
-            loss_D_real = bce_loss(real_out, ones[:batch_len])
-
-            # 偽の画像の偽と識別できるようにロスを計算
-            fake_out = model_D(torch.cat([fake_color_tensor, low_image], dim=1))
-            loss_D_fake = bce_loss(fake_out, zeros[:batch_len])
-
-            # 実画像と偽画像のロスを合計
-            loss_D = loss_D_real + loss_D_fake
-            log_loss_D.append(loss_D.item())
-
-            # 微分計算・重み更新
-            params_D.zero_grad()
-            params_G.zero_grad()
-            loss_D.backward()
-            params_D.step()
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
             
+            epoch_loss.append(loss.item())
             
-
-        result["log_loss_G_sum"].append(statistics.mean(log_loss_G_sum))
-        result["log_loss_G_bce"].append(statistics.mean(log_loss_G_bce))
-        result["log_loss_G_mae"].append(statistics.mean(log_loss_G_mae))
-        result["log_loss_D"].append(statistics.mean(log_loss_D))
-        print(f"log_loss_G_sum = {result['log_loss_G_sum'][-1]} " +
-              f"({result['log_loss_G_bce'][-1]}, {result['log_loss_G_mae'][-1]}) " )
-        print(f"log_loss_D = {result['log_loss_D'][-1]}")
-
-        # 画像を保存
-        if not os.path.exists(CFG.OUTPUT_IMG):
-            os.makedirs(CFG.OUTPUT_IMG)
-        # 生成画像を保存
-        torchvision.utils.save_image(fake_color_tensor[:min(batch_len, 100)],
-                                f"{CFG.OUTPUT_IMG}/fake_epoch_{i:03}.png",
-                                    )
-        torchvision.utils.save_image(high_image[:min(batch_len, 100)],
-                                f"{CFG.OUTPUT_IMG}/real_epoch_{i:03}.png",
-                                    )
+        metrics["train"].append(np.mean(epoch_loss))
 
         # モデルの保存
-        if not os.path.exists(CFG.OUTPUT_MODEL):
-            os.makedirs(CFG.OUTPUT_MODEL)
-        if i % 10 == 0 or i == 199:
-            torch.save(model_G.state_dict(), f"{CFG.OUTPUT_MODEL}/gen_{i:03}.pytorch")                        
-            torch.save(model_D.state_dict(), f"{CFG.OUTPUT_MODEL}/dis_{i:03}.pytorch")                        
+        output_model = f"{os.getenv('OUTPUT_DIR')}/model"     
+        if not os.path.exists(output_model):
+            os.mkdir(output_model)
+        if epoch % save_interval == 0 or epoch == max_epoch:
+            torch.save(model.state_dict(), f"{output_model}/{CFG.model}_{epoch:03}.pytorch")     
 
-    # ログの保存
-#    with open("stl_color/logs.pkl", "wb") as fp:
-#        pickle.dump(result, fp)
+        # 生成画像を保存
+        save_image(output_tensor[:10], 
+                os.path.join(output_model, f'train_{epoch:02}_gen.png'))
+        save_image(label[:10], 
+                os.path.join(output_model, f'train_{epoch:02}_label.png'))
+
+
+
+        # valid
+        model.eval()
+        for label, img_input in valid_loader:
+            valid_loss = []
+
+            label /= 255
+            img_input /= 255
+            label, img_input = label.to(device), img_input.to(device)
+
+            output = model(img_input)
+            loss = criterion(output, label)
+            output_tensor = output.detach()
+            valid_loss.append(loss.item())
+        metrics['valid'].append(np.mean(valid_loss)) 
+
+        print(f"train: {metrics['train'][-1]}")
+        print(f"valid: {metrics['valid'][-1]}")
+        
+        # 生成画像を保存
+        save_image(output_tensor[:10], 
+                os.path.join(output_model, f'valid_{epoch:02}_gen.png'))
+        save_image(label[:10], 
+                os.path.join(output_model, f'valid_{epoch:02}_label.png'))
 
 
 if __name__ == '__main__':
@@ -147,4 +141,4 @@ if __name__ == '__main__':
     train()
 
     text = 'finish train!!'
-    send_line_message(CFG.LINE_TOKEN, text)
+    send_line_message(line_token, text)
