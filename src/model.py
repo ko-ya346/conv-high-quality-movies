@@ -96,7 +96,7 @@ MODELS = {
         }
 
 def get_network(name):
-    for n, cls in MODELS.itens():
+    for n, cls in MODELS.items():
         if n == name:
             return cls
     raise ValueError(f'Model {name} is not defined.')
