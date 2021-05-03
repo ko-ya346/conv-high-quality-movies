@@ -32,3 +32,11 @@ def get_line_token(token_path):
     with open(token_path, 'r') as f:
          token = json.load(f)['token']
     return token
+
+def resize_img(image, magnification=3):
+    '''
+    cv2でリサイズを行う
+    '''
+    return cv2.resize(image, (image.shape[1]*magnification,
+                              image.shape[0]*magnification),
+                      interpolation=cv2.INTER_CUBIC)
