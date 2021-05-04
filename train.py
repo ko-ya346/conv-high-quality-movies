@@ -31,15 +31,9 @@ def train():
     dataset_queries = {
             '4-3': [
                 os.path.join(os.getenv('INPUT_DIR'), 
-                                f'4-3/images/{CFG.dataset}/*.png'),
+                                f'images/{CFG.dataset}/*.png'),
                 os.path.join(os.getenv('INPUT_DIR'),
-                    f'4-3/images/{CFG.valid}/image-00*.png')
-                ],
-            '16-9': [
-                os.path.join(os.getenv('INPUT_DIR'), 
-                    f'16-9/images/{CFG.dataset}/*.png'),
-                os.path.join(os.getenv('INPUT_DIR'),
-                    f'16-9/images/{CFG.valid}/*.png')
+                    f'images/{CFG.valid}/image-00*.png')
                 ],
             }
 

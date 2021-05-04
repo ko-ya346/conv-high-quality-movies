@@ -31,15 +31,9 @@ def inference():
     dataset_queries = {
             '4-3': [
                 os.path.join(os.getenv('INPUT_DIR'), 
-                                f'4-3/images/{CFG.dataset}/*.png'),
+                                f'images/{CFG.dataset}/*.png'),
                 os.path.join(os.getenv('INPUT_DIR'),
-                    f'4-3/images/{CFG.valid}/image-00*.png')
-                ],
-            '16-9': [
-                os.path.join(os.getenv('INPUT_DIR'), 
-                    f'16-9/images/{CFG.dataset}/*.png'),
-                os.path.join(os.getenv('INPUT_DIR'),
-                    f'16-9/images/{CFG.valid}/*.png')
+                    f'images/{CFG.valid}/*.png')
                 ],
             }
 
@@ -53,7 +47,7 @@ def inference():
     model = get_network(CFG.model)()
     model = model.to(device)
 
-    states = torch.load(f'{os.getenv("OUTPUT_DIR")}/model/{CFG.model}_005.pytorch')
+    states = torch.load(f'{os.getenv("OUTPUT_DIR")}/model/{CFG.model}_000.pytorch')
     model.load_state_dict(states)
     
     output_dir = os.path.join(os.getenv('OUTPUT_DIR'), 'images', CFG.valid)

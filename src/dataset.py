@@ -37,7 +37,7 @@ class Img_dataset(Dataset):
         transform = [
             A.HorizontalFlip(p=0.5),
             A.VerticalFlip(p=0.5),
-#            A.ChannelDropout(channel_drop_range=(1, 1), fill_value=0, p=0.5),
+#            A.ChannelDropout(channel_drop_range=(1, 1), fill_value=0, p=0.333),
             ]
         return A.Compose(transform)
 
