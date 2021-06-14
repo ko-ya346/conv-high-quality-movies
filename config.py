@@ -30,7 +30,7 @@ def get_arguments():
     # dataset setting
     parser.add_argument(
             '--dataset', type=str, 
-            default='high_2', help='dataset name'
+            default='T91', help='dataset name'
             )
     parser.add_argument(
             '--valid', type=str, default='1-2', 
@@ -55,15 +55,27 @@ def get_arguments():
 
 class CFG:
     args = get_arguments()
-    dataset = args.get('dataset', None)
-    upscale = args.get('upscale', None)
+    train_dataset = 'T91'
+    valid_dataset = 'Set5'
+    inference_dataset = 'rori'
+    shrink_scale = 3
 
-    valid = args.get('valid', None)
-    model = args.get('model', None)
+    model = 'srcnn'
+    max_size = 128
+    total_samples = 1000
+    input_upsample = True
 
-    xsize = 150 
-    ysize = 200
-    low_xsize = xsize // upscale
-    low_ysize = ysize // upscale
-    batch_size = args.get('batch', None)
-    epoch = 500
+    inference_dataset = 'rori'
+    xsize = 240
+    ysize = 320
+    up_scale = 3
+    #
+    # optimizerとschedulerのパラメータがよく分からん
+    #
+    lr = 0.01
+    weight_decay = 1e-8
+    lr_step = 15
+    lr_gamma = 0.1
+
+    batch_size = 128
+    epoch = 300
