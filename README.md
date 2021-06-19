@@ -35,4 +35,12 @@ source im2mo.sh sample 30
 メモリ8GBだとバッチサイズを大きく出来ない…  
 手元で試すもそこまで高画質にはならなかった…
 
+# lint/format
 
+```
+pysen run lint
+pysen run format
+
+# 指定パス毎に実行
+pysen run_files lint {path}
+```
