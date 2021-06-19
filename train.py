@@ -70,7 +70,9 @@ def train(debug=False):
     )
     scheduler = StepLR(optimizer, step_size=CFG.lr_step, gamma=CFG.lr_gamma)
     if os.path.exists(f'os.getenv("OUTPUT_DIR")/{CFG.model}'):
-        states = torch.load(f'os.getenv("OUTPUT_DIR")/model/{CFG.model}_010.pytorch')
+        states = torch.load(
+            f'os.getenv("OUTPUT_DIR")/model/{CFG.model}_010.pytorch'
+        )
         model.load_state_dict(states)
 
     # 損失関数
@@ -112,18 +114,21 @@ def train(debug=False):
             os.mkdir(output_model)
         if epoch % save_interval == 0 or epoch == max_epoch:
             torch.save(
-                model.state_dict(), f"{output_model}/{CFG.model}_{epoch:03}.pytorch"
+                model.state_dict(),
+                f"{output_model}/{CFG.model}_{epoch:03}.pytorch",
             )
 
         # 画像を保存
 
         # 低画質→高画質に変換した画像
         save_image(
-            output_tensor[:10], os.path.join(output_model, f"train_{epoch:02}_gen.png")
+            output_tensor[:10],
+            os.path.join(output_model, f"train_{epoch:02}_gen.png"),
         )
         # 元画像
         save_image(
-            img_target[:10], os.path.join(output_model, f"train_{epoch:02}_target.png")
+            img_target[:10],
+            os.path.join(output_model, f"train_{epoch:02}_target.png"),
         )
 
         # valid
@@ -144,10 +149,12 @@ def train(debug=False):
 
         # 生成画像を保存
         save_image(
-            output_tensor[:10], os.path.join(output_model, f"valid_{epoch:02}_gen.png")
+            output_tensor[:10],
+            os.path.join(output_model, f"valid_{epoch:02}_gen.png"),
         )
         save_image(
-            img_target[:10], os.path.join(output_model, f"valid_{epoch:02}_target.png")
+            img_target[:10],
+            os.path.join(output_model, f"valid_{epoch:02}_target.png"),
         )
 
 

@@ -25,7 +25,9 @@ def get_arguments():
     )
 
     # dataset setting
-    parser.add_argument("--dataset", type=str, default="T91", help="dataset name")
+    parser.add_argument(
+        "--dataset", type=str, default="T91", help="dataset name"
+    )
     parser.add_argument(
         "--valid", type=str, default="1-2", help="validation dataset name"
     )
@@ -39,7 +41,9 @@ def get_arguments():
 
     # run settings
     #    parser.add_argument('--workers', type=int, default=4, help='workers for dataset parallel')
-    parser.add_argument("--batch", type=int, default=128, help="training batch size")
+    parser.add_argument(
+        "--batch", type=int, default=128, help="training batch size"
+    )
     return vars(parser.parse_args())
 
 

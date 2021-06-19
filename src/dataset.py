@@ -51,7 +51,9 @@ class TrainDataset(Dataset):
 
         self.n_images = len(self.img_paths)
 
-        high_size = calculate_original_img_size(max_size, upscale_factor=shrink_scale)
+        high_size = calculate_original_img_size(
+            max_size, upscale_factor=shrink_scale
+        )
         low_size = int(high_size / shrink_scale)
 
         if input_upsample:
@@ -64,7 +66,10 @@ class TrainDataset(Dataset):
             )
         else:
             self.input_transform = T.Compose(
-                [T.Resize(size=low_size, interpolation=interpolation), T.ToTensor()]
+                [
+                    T.Resize(size=low_size, interpolation=interpolation),
+                    T.ToTensor(),
+                ]
             )
 
         self.target_transform = T.Compose([T.ToTensor()])
@@ -115,7 +120,9 @@ class TestDataset(Dataset):
         interpolation:
     """
 
-    def __init__(self, query, xsize, ysize, up_scale=3, interpolation=Image.BICUBIC):
+    def __init__(
+        self, query, xsize, ysize, up_scale=3, interpolation=Image.BICUBIC
+    ):
         super().__init__()
 
         self.img_paths = list(glob(query))
@@ -126,7 +133,9 @@ class TestDataset(Dataset):
 
         self.input_transform = T.Compose(
             [
-                T.Resize(size=(high_xsize, high_ysize), interpolation=interpolation),
+                T.Resize(
+                    size=(high_xsize, high_ysize), interpolation=interpolation
+                ),
                 T.ToTensor(),
             ]
         )

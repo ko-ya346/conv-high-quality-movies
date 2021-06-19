@@ -41,10 +41,14 @@ def inference():
     model = get_network(CFG.model)()
     model = model.to(device)
 
-    states = torch.load(f'{os.getenv("OUTPUT_DIR")}/model/{CFG.model}_295.pytorch')
+    states = torch.load(
+        f'{os.getenv("OUTPUT_DIR")}/model/{CFG.model}_295.pytorch'
+    )
     model.load_state_dict(states)
 
-    output_dir = os.path.join(os.getenv("OUTPUT_DIR"), "images", CFG.inference_dataset)
+    output_dir = os.path.join(
+        os.getenv("OUTPUT_DIR"), "images", CFG.inference_dataset
+    )
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
