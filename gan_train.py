@@ -5,9 +5,9 @@ import torch
 from config import CFG
 from dotenv import load_dotenv
 from src.dataset import TrainDataset
-from src.model import Generator, Discriminator
-from src.utils import get_line_token, send_line_message
 from src.lossess import GANLoss
+from src.model import Discriminator, Generator
+from src.utils import get_line_token, send_line_message
 from torch import nn
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
@@ -65,7 +65,6 @@ def train(debug=False):
     model_G = nn.DataParallel(Generator()).to(device)
     model_D = nn.DataParallel(Discriminator()).to(device)
 
-
     # optimizer
     optimizer_G = torch.optim.Adam(
         model_G.parameters(), lr=CFG.lr, weight_decay=CFG.weight_decay
@@ -75,10 +74,6 @@ def train(debug=False):
     )
     scheduler_G = StepLR(optimizer_G, step_size=CFG.lr_step, gamma=CFG.lr_gamma)
     scheduler_D = StepLR(optimizer_D, step_size=CFG.lr_step, gamma=CFG.lr_gamma)
-
-    if os.path.exists(f'os.getenv("OUTPUT_DIR")/{CFG.model}'):
-        states = torch.load(f'os.getenv("OUTPUT_DIR")/model/{CFG.model}_010.pytorch')
-        model.load_state_dict(states)
 
     # 損失関数
     # なにこれ
@@ -110,21 +105,20 @@ def train(debug=False):
             img_fake = model_G(img_input)
             img_fake_tensor = img_fake.detach()
 
-            LAMBD = 1.0 # BCEとMAEの係数
+            LAMBD = 1.0  # BCEとMAEの係数
 
-#            print('img_fake:', img_fake.size()) 
-#            print('img_real:', img_real.size()) 
-            
+            #            print('img_fake:', img_fake.size())
+            #            print('img_real:', img_real.size())
+
             output_D = model_D(torch.cat([img_fake, img_real], dim=1))
-#            print(f'{output_D[0]}')
-#            print(f'output_D.size(): {output_D.size()}')
+            #            print(f'{output_D[0]}')
+            #            print(f'output_D.size(): {output_D.size()}')
 
             # loss計算
             # generatorは本物と判別されてほしい
             loss_G_bce = criterionGAN(output_D, True)
             loss_G_mae = LAMBD * mae_loss(img_fake, img_real)
             loss_G_sum = loss_G_bce + loss_G_mae
-
 
             optimizer_G.zero_grad()
             optimizer_D.zero_grad()
@@ -137,28 +131,27 @@ def train(debug=False):
             loss_D_real = criterionGAN(real_out, True)
 
             # 偽の画像をニセと識別できるようにする
-#            print('img_input:', img_input.size()) 
+            #            print('img_input:', img_input.size())
 
             # 20210618
             # Discriminatorのbackwardがうまくいかなかった原因
             # img_fake -> img_fake_tensor に変えたらうまくいった
             fake_out = model_D(torch.cat([img_fake_tensor, img_input], dim=1))
 
-#            print(f'fake_out.size(): {fake_out.size()}')
-#            print(fake_out)
-            
+            #            print(f'fake_out.size(): {fake_out.size()}')
+            #            print(fake_out)
+
             loss_D_fake = criterionGAN(fake_out, False)
-#            print(loss_D_fake)
-#            print(loss_D_real)
+            #            print(loss_D_fake)
+            #            print(loss_D_real)
 
             loss_D_sum = loss_D_real + loss_D_fake
 
             optimizer_G.zero_grad()
             optimizer_D.zero_grad()
             loss_D_sum.backward()
-            
+
             optimizer_D.step()
-            
 
             epoch_loss_G.append(loss_G_sum.item())
             epoch_loss_D.append(loss_D_sum.item())
@@ -182,11 +175,13 @@ def train(debug=False):
 
         # 低画質→高画質に変換した画像
         save_image(
-            img_fake_tensor[:10], os.path.join(output_model, f"train_{epoch:02}_gen.png")
+            img_fake_tensor[:10],
+            os.path.join(output_model, f"train_{epoch:02}_gen.png"),
         )
         # 元画像
         save_image(
-            img_real[:10], os.path.join(output_model, f"train_{epoch:02}_target.png")
+            img_real[:10],
+            os.path.join(output_model, f"train_{epoch:02}_target.png"),
         )
 
         # valid
@@ -208,10 +203,12 @@ def train(debug=False):
 
         # 生成画像を保存
         save_image(
-            output_tensor[:10], os.path.join(output_model, f"valid_{epoch:02}_gen.png")
+            output_tensor[:10],
+            os.path.join(output_model, f"valid_{epoch:02}_gen.png"),
         )
         save_image(
-            img_real[:10], os.path.join(output_model, f"valid_{epoch:02}_target.png")
+            img_real[:10],
+            os.path.join(output_model, f"valid_{epoch:02}_target.png"),
         )
 
 
