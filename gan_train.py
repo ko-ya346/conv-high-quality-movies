@@ -77,7 +77,7 @@ def train(debug=False):
 
     # 損失関数
     # なにこれ
-    criterionGAN = GANLoss().to(device)
+    criterionGAN = GANLoss(CFG.gan_mode).to(device)
     mae_loss = nn.L1Loss()
 
     # エラー推移
@@ -105,19 +105,17 @@ def train(debug=False):
             img_fake = model_G(img_input)
             img_fake_tensor = img_fake.detach()
 
-            LAMBD = 1.0  # BCEとMAEの係数
-
-            #            print('img_fake:', img_fake.size())
-            #            print('img_real:', img_real.size())
+            # print('img_fake:', img_fake.size())
+            # print('img_real:', img_real.size())
 
             output_D = model_D(torch.cat([img_fake, img_real], dim=1))
-            #            print(f'{output_D[0]}')
-            #            print(f'output_D.size(): {output_D.size()}')
+            # print(f'{output_D[0]}')
+            # print(f'output_D.size(): {output_D.size()}')
 
             # loss計算
             # generatorは本物と判別されてほしい
             loss_G_bce = criterionGAN(output_D, True)
-            loss_G_mae = LAMBD * mae_loss(img_fake, img_real)
+            loss_G_mae = CFG.LAMBD * mae_loss(img_fake, img_real)
             loss_G_sum = loss_G_bce + loss_G_mae
 
             optimizer_G.zero_grad()
@@ -131,19 +129,19 @@ def train(debug=False):
             loss_D_real = criterionGAN(real_out, True)
 
             # 偽の画像をニセと識別できるようにする
-            #            print('img_input:', img_input.size())
+            # print('img_input:', img_input.size())
 
             # 20210618
             # Discriminatorのbackwardがうまくいかなかった原因
             # img_fake -> img_fake_tensor に変えたらうまくいった
             fake_out = model_D(torch.cat([img_fake_tensor, img_input], dim=1))
 
-            #            print(f'fake_out.size(): {fake_out.size()}')
-            #            print(fake_out)
+            # print(f'fake_out.size(): {fake_out.size()}')
+            # print(fake_out)
 
             loss_D_fake = criterionGAN(fake_out, False)
-            #            print(loss_D_fake)
-            #            print(loss_D_real)
+            # print(loss_D_fake)
+            # print(loss_D_real)
 
             loss_D_sum = loss_D_real + loss_D_fake
 
