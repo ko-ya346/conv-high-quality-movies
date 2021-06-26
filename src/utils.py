@@ -4,12 +4,12 @@ import os
 import random
 import warnings
 
-import numpy as np
 import cv2
 import matplotlib.pyplot as plt
+import numpy as np
 import requests
-import torch
 import tensorboardX as tbx
+import torch
 
 
 def calculate_original_img_size(origin_size: int, upscale_factor: int) -> int:
@@ -71,8 +71,10 @@ def resize_img(image, magnification=3):
         interpolation=cv2.INTER_CUBIC,
     )
 
-def init_logger(log_file='train.log'):
-    from logging import getLogger, INFO, FileHandler,  Formatter,  StreamHandler
+
+def init_logger(log_file="train.log"):
+    from logging import INFO, FileHandler, Formatter, StreamHandler, getLogger
+
     logger = getLogger(__name__)
     logger.setLevel(INFO)
     handler1 = StreamHandler()
@@ -83,6 +85,7 @@ def init_logger(log_file='train.log'):
     logger.addHandler(handler2)
     return logger
 
+
 def set_seed(seed: int = 42):
     random.seed(seed)
     np.random.seed(seed)
@@ -92,9 +95,9 @@ def set_seed(seed: int = 42):
     torch.backends.cudnn.deterministic = True  # type: ignore
     torch.backends.cudnn.benchmark = True  # type: ignore
 
-class TbxSummary:
 
-    def __init__(self, path_json, name='data/loss'):
+class TbxSummary:
+    def __init__(self, path_json, name="data/loss"):
         self.path_json = path_json
         self.name = name
         self.writer = tbx.SummaryWriter()

@@ -2,14 +2,14 @@ import os
 from glob import glob
 
 import torch
-from torch import nn
 
 # 自作
 from config import CFG
 from dotenv import load_dotenv
 from src.dataset import TestDataset
-from src.model import get_network, Generator
+from src.model import Generator, get_network
 from src.utils import get_line_token, send_line_message
+from torch import nn
 from torch.utils.data import DataLoader
 from torchvision.utils import save_image
 from tqdm.auto import tqdm
