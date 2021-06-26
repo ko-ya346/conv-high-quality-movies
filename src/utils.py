@@ -1,8 +1,15 @@
 import json
+import logging
+import os
+import random
+import warnings
 
+import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 import requests
+import torch
+import tensorboardX as tbx
 
 
 def calculate_original_img_size(origin_size: int, upscale_factor: int) -> int:
@@ -63,3 +70,38 @@ def resize_img(image, magnification=3):
         (image.shape[1] * magnification, image.shape[0] * magnification),
         interpolation=cv2.INTER_CUBIC,
     )
+
+def init_logger(log_file='train.log'):
+    from logging import getLogger, INFO, FileHandler,  Formatter,  StreamHandler
+    logger = getLogger(__name__)
+    logger.setLevel(INFO)
+    handler1 = StreamHandler()
+    handler1.setFormatter(Formatter("%(message)s"))
+    handler2 = FileHandler(filename=log_file)
+    handler2.setFormatter(Formatter("%(message)s"))
+    logger.addHandler(handler1)
+    logger.addHandler(handler2)
+    return logger
+
+def set_seed(seed: int = 42):
+    random.seed(seed)
+    np.random.seed(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)  # type: ignore
+    torch.backends.cudnn.deterministic = True  # type: ignore
+    torch.backends.cudnn.benchmark = True  # type: ignore
+
+class TbxSummary:
+
+    def __init__(self, path_json, name='data/loss'):
+        self.path_json = path_json
+        self.name = name
+        self.writer = tbx.SummaryWriter()
+
+    def add_scalar(self, item, iteration):
+        self.writer.add_scalars(self.name, item, iteration)
+
+    def save_json(self):
+        self.writer.export_scalars_to_json(self.path_json)
+        self.writer.close()
