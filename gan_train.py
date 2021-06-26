@@ -1,6 +1,6 @@
 import os
-from pathlib import Path
 import warnings
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -9,7 +9,13 @@ from dotenv import load_dotenv
 from src.dataset import TrainDataset
 from src.lossess import GANLoss
 from src.model import Discriminator, Generator
-from src.utils import get_line_token, send_line_message, init_logger, set_seed, TbxSummary
+from src.utils import (
+    TbxSummary,
+    get_line_token,
+    init_logger,
+    send_line_message,
+    set_seed,
+)
 from torch import nn
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
@@ -27,16 +33,16 @@ def train(debug=False):
     if CFG.debug:
         max_epoch = 1
 
-    warnings.filterwarnings('ignore')
+    warnings.filterwarnings("ignore")
 
     OUTPUT_DIR = f"{os.getenv('OUTPUT_DIR')}/{CFG.name_experiment}"
     if not os.path.exists(OUTPUT_DIR):
         os.mkdir(OUTPUT_DIR)
 
     # log
-    logdir = Path(OUTPUT_DIR) / 'log'
+    logdir = Path(OUTPUT_DIR) / "log"
     logdir.mkdir(exist_ok=True, parents=True)
-    logger = init_logger(log_file=logdir/'train.log')
+    logger = init_logger(log_file=logdir / "train.log")
 
     set_seed()
 
@@ -96,11 +102,12 @@ def train(debug=False):
     mae_loss = nn.L1Loss()
 
     # エラー推移
-#    writer = TbxSummary(f'{OUTPUT_DIR}/train.json')
+    #    writer = TbxSummary(f'{OUTPUT_DIR}/train.json')
     metrics = {}
     metrics["generator"] = []
     metrics["discriminator"] = []
     metrics["loss_G_bce"] = []
+    metrics["loss_G_mae"] = []
     metrics["valid"] = []
     save_interval = 5
 
@@ -113,6 +120,7 @@ def train(debug=False):
         model_D.train()
 
         epoch_loss_G_bce = []
+        epoch_loss_G_mae = []
         epoch_loss_G = []
         epoch_loss_D = []
 
@@ -170,24 +178,25 @@ def train(debug=False):
             optimizer_D.step()
 
             epoch_loss_G_bce.append(loss_G_bce.item())
+            epoch_loss_G_mae.append(loss_G_mae.item())
             epoch_loss_G.append(loss_G_sum.item())
             epoch_loss_D.append(loss_D_sum.item())
 
-#            writer.add_scalar({
-#                    'loss_G_bce': loss_G_bce.item(),
-#                    'loss_G_mae': loss_G_mae.item(),
-#                    'loss_G_sum': loss_G_sum.item(),
-#                    'loss_D_real': loss_D_real.item(),
-#                    'loss_D_fake': loss_D_fake.item(),
-#                    'loss_D_sum': loss_D_sum.item(),
-#                },
-#                (epoch+1)* batch_i
-#                )
+        #            writer.add_scalar({
+        #                    'loss_G_bce': loss_G_bce.item(),
+        #                    'loss_G_mae': loss_G_mae.item(),
+        #                    'loss_G_sum': loss_G_sum.item(),
+        #                    'loss_D_real': loss_D_real.item(),
+        #                    'loss_D_fake': loss_D_fake.item(),
+        #                    'loss_D_sum': loss_D_sum.item(),
+        #                },
+        #                (epoch+1)* batch_i
+        #                )
 
         metrics["generator"].append(np.mean(epoch_loss_G))
         metrics["discriminator"].append(np.mean(epoch_loss_D))
         metrics["loss_G_bce"].append(np.mean(epoch_loss_G_bce))
-
+        metrics["loss_G_mae"].append(np.mean(epoch_loss_G_mae))
 
         # モデルの保存
         if epoch % save_interval == 0 or epoch == max_epoch:
@@ -223,18 +232,19 @@ def train(debug=False):
             output_tensor = output.detach()
             valid_loss.append(loss.item())
 
-#            writer.add_scalar({
-#                'valid': loss.item()
-#                },
-#                (epoch+1)*batch_i
-#                )
+        #            writer.add_scalar({
+        #                'valid': loss.item()
+        #                },
+        #                (epoch+1)*batch_i
+        #                )
 
         metrics["valid"].append(np.mean(valid_loss))
 
-        print(f"generator: {metrics['generator'][-1]}")
-        print(f"discriminator: {metrics['discriminator'][-1]}")
-        print(f"loss_G_bce: {metrics['loss_G_bce'][-1]}")
-        print(f"valid: {metrics['valid'][-1]}")
+        logger.info(f"generator: {metrics['generator'][-1]}")
+        logger.info(f"discriminator: {metrics['discriminator'][-1]}")
+        logger.info(f"loss_G_bce: {metrics['loss_G_bce'][-1]}")
+        logger.info(f"loss_G_mae: {metrics['loss_G_mae'][-1]}")
+        logger.info(f"valid: {metrics['valid'][-1]}")
 
         # 生成画像を保存
         save_image(
@@ -245,8 +255,10 @@ def train(debug=False):
             img_real[:10],
             os.path.join(OUTPUT_DIR, f"valid_{epoch:02}_target.png"),
         )
-    
-    writer.save_json()
+
+
+#    writer.save_json()
+
 
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
