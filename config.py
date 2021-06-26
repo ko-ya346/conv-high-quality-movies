@@ -49,10 +49,13 @@ def get_arguments():
 
 class CFG:
     args = get_arguments()
+    name_experiment = 'pix6'
+    debug = False
+
     train_dataset = "T91"
     valid_dataset = "Set5"
     inference_dataset = "rori"
-    shrink_scale = 3
+    shrink_scale = 3 
 
     model = "bnsrcnn"
     max_size = 128
@@ -61,8 +64,8 @@ class CFG:
 
     inference_dataset = "rori"
     xsize = 240
-    ysize = 320
-    up_scale = 3
+    ysize = 324
+    up_scale = 3 
     #
     # optimizerとschedulerのパラメータがよく分からん
     #
@@ -72,4 +75,9 @@ class CFG:
     lr_gamma = 0.1
 
     batch_size = 128
-    epoch = 300
+    epoch = 100
+
+    # pix2pixのbceとmaeの係数
+    # 大きいほど元画像に近くなる（論文では100）
+    LAMBD = 100.0
+    gan_mode = 'vanilla'
