@@ -2,12 +2,13 @@ import os
 from glob import glob
 
 import torch
+from torch import nn
 
 # 自作
 from config import CFG
 from dotenv import load_dotenv
 from src.dataset import TestDataset
-from src.model import get_network
+from src.model import get_network, Generator
 from src.utils import get_line_token, send_line_message
 from torch.utils.data import DataLoader
 from torchvision.utils import save_image
@@ -38,11 +39,11 @@ def inference():
     )
     save_name = [path.split("/")[-1] for path in list(glob(query))]
 
-    model = get_network(CFG.model)()
-    model = model.to(device)
+    # model = get_network(CFG.model)()
+    model = nn.DataParallel(Generator()).to(device)
 
     states = torch.load(
-        f'{os.getenv("OUTPUT_DIR")}/model/{CFG.model}_295.pytorch'
+        f'{os.getenv("OUTPUT_DIR")}/{CFG.name_experiment}/gen_295.pytorch'
     )
     model.load_state_dict(states)
 
@@ -65,5 +66,5 @@ if __name__ == "__main__":
     torch.backends.cudnn.benchmark = True  # autotunerが高速化
     inference()
 
-    text = "finish train!!"
+    text = "finish inference!!"
     send_line_message(line_token, text)
